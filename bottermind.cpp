@@ -10,11 +10,18 @@
 
 using namespace std;
 
-#define PRINT_DEBUG
-#ifdef PRINT_DEBUG
-#define DBG(x) {cerr << x << endl;}
+//#define PRINT_DEBUG_INPUT
+#ifdef PRINT_DEBUG_INPUT
+#define DBG_INPUT(x) {cerr << x << endl;}
 #else
-#define DBG(x)
+#define DBG_INPUT(x)
+#endif
+
+#define PRINT_DEBUG_INFO
+#ifdef PRINT_DEBUG_INFO
+#define DBG_INFO(x) {cerr << x << endl;}
+#else
+#define DBG_INFO(x)
 #endif
 
 /**
@@ -61,6 +68,7 @@ HeroType heroTypeFromString(string s)
     }
 }
 
+
 enum class UnitType
 {
     UNIT=0,
@@ -70,6 +78,23 @@ enum class UnitType
     COUNT=4,
     UNKNOWN=5
 };
+
+
+string unitTypeToString(UnitType uType)
+{
+    switch(uType)
+    {
+        case UnitType::UNIT:
+            return "UNIT";
+            break;
+        case UnitType::TOWER:
+            return "TOWER";
+            break;
+        case UnitType::HERO:
+            return "HERO";
+            break;
+    }
+}
 
 UnitType unitTypeFromString(string s)
 {
@@ -91,7 +116,7 @@ UnitType unitTypeFromString(string s)
     }
     else
     {
-        DBG("[unitTypeFromString] Unexpected UnitType: " << s);
+        DBG_INPUT("[unitTypeFromString] Unexpected UnitType: " << s);
         return UnitType::UNKNOWN;
     }
 }
@@ -104,7 +129,7 @@ struct Position
     inline void readFromInput()
     {
         cin >> x >> y;
-        DBG("[Input][Position::readFromInput] x:" << x << " , y:" << y);
+        DBG_INPUT("[Input][Position::readFromInput] x:" << x << " , y:" << y);
     }
 
     int x;
@@ -123,6 +148,8 @@ public:
     {
         _pos.readFromInput();
     }
+
+    inline const Position& getPosition() const { return _pos; }
 private:
     Position _pos;
 };
@@ -136,7 +163,7 @@ public:
     {
         ObjectWithPosition::readFromInput();
         cin >> _radius;
-        DBG("[Input][ObjectWithPositionAndRadius::readFromInput] _radius:" << _radius);
+        DBG_INPUT("[Input][ObjectWithPositionAndRadius::readFromInput] _radius:" << _radius);
     }
 private:
     int _radius;
@@ -151,7 +178,7 @@ public:
     {
         ObjectWithPosition::readFromInput();
         cin >> _attackRange >> _health >> _maxHealth >> _shield >> _attackDamage >> _movementSpeed >> _stunDuration >> _goldValue;
-        DBG("[Input][Unit::readFromInput] _health: " << _health
+        DBG_INPUT("[Input][Unit::readFromInput] _health: " << _health
             << " ,_maxHealth:" << _maxHealth
             << " ,_shield:" << _shield
             << " ,_attackDamage:" << _attackDamage
@@ -167,7 +194,15 @@ public:
         }
     }
 
-    inline UnitType getType(){ return _unitType;}
+    inline bool inRangeOf(const Unit& other)
+    {
+        int distance = distanceTo(other);
+        return (distance < other._attackRange);
+    }
+
+    inline UnitType getType() const { return _unitType; }
+    inline int getUnitId() const { return _unitId; }
+    inline int getAttackRange() const { return _attackRange; }
 private:
     int _unitId;
     int _team;
@@ -192,7 +227,7 @@ public:
         Unit::readFromInput(false);
         string heroTypeString;
         cin >> _cd1 >> _cd2 >> _cd3 >> _mana >> _maxMana >> _manaRegen >> heroTypeString >> _isVisible >> _itemsOwned;
-        DBG("[Input][Hero::readFromInput] _cd1: " << _cd1
+        DBG_INPUT("[Input][Hero::readFromInput] _cd1: " << _cd1
             << " ,_cd2:" << _cd2
             << " ,_cd3:" << _cd3
             << " ,_mana:" << _mana
@@ -263,16 +298,16 @@ struct RoundState
     {
         unsigned int entityCount;
         cin >> entityCount; cin.ignore();
-        DBG("[Input][RoundState::readEntities] entityCount: " << entityCount);
+        DBG_INPUT("[Input][RoundState::readEntities] entityCount: " << entityCount);
 
         for(unsigned int i = 0; i < entityCount; ++i)
         {
-            DBG("[Input][RoundState::readEntities] Parsing entity # " << i);
+            DBG_INPUT("[Input][RoundState::readEntities] Parsing entity # " << i);
             int unitId;
             int team;
             string unitTypeString;
             cin >> unitId >> team >> unitTypeString;
-            DBG("[Input][Unit::readFromInput] _unitId:" << unitId << " , team:" << team << " , unitTypeString:" << unitTypeString);
+            DBG_INPUT("[Input][Unit::readFromInput] _unitId:" << unitId << " , team:" << team << " , unitTypeString:" << unitTypeString);
             UnitType unitType = unitTypeFromString(unitTypeString);
             TeamState* teamStatePtr = team == ourTeamN ? &ourTeam : &enemyTeam;
             switch (unitType)
@@ -294,7 +329,7 @@ struct RoundState
                     _groots.back()->readFromInput();
                     break;
                 default:
-                    DBG("[RoundState::readEntities] ERROR - Unexpected UnitType")
+                    DBG_INPUT("[RoundState::readEntities] ERROR - Unexpected UnitType")
                     return;
             }
             cin.ignore();
@@ -306,7 +341,7 @@ struct RoundState
         cin >> ourTeam.gold; cin.ignore();
         cin >> enemyTeam.gold; cin.ignore();
         cin >> roundType; cin.ignore();
-        DBG("[Input][RoundState::readFromInput] ourTeam.gold: " << ourTeam.gold << " , enemyTeam.gold: " << enemyTeam.gold << " , roundType:" << roundType);
+        DBG_INPUT("[Input][RoundState::readFromInput] ourTeam.gold: " << ourTeam.gold << " , enemyTeam.gold: " << enemyTeam.gold << " , roundType:" << roundType);
         readEntities();
     }
 
@@ -331,7 +366,7 @@ public:
 
         cin >> _myTeam; cin.ignore();
 
-        DBG("[Input][GameContext::readInit] _bushAndSpawnPointCount: " << _bushAndSpawnPointCount << " , _myTeam: " << _myTeam);
+        DBG_INPUT("[Input][GameContext::readInit] _bushAndSpawnPointCount: " << _bushAndSpawnPointCount << " , _myTeam: " << _myTeam);
     }
 
     inline void readBushesAndSpawnPoints()
@@ -341,7 +376,7 @@ public:
             string entityType; // BUSH, from wood1 it can also be SPAWN
             ObjectWithPositionAndRadius* objectPtr=nullptr;
             cin >> entityType;
-            DBG("[Input][GameContext::readBushesAndSpawnPoints] entityType: " << entityType);
+            DBG_INPUT("[Input][GameContext::readBushesAndSpawnPoints] entityType: " << entityType);
             if(entityType == "BUSH")
             {
                 _bushes.emplace_back();
@@ -361,7 +396,7 @@ public:
     {
         unsigned int itemCount; // useful from wood2
         cin >> itemCount; cin.ignore();
-        DBG("[Input][GameContext::readItems] itemCount: " << itemCount);
+        DBG_INPUT("[Input][GameContext::readItems] itemCount: " << itemCount);
         _items.resize(itemCount);
 
         for (unsigned int i = 0; i < itemCount; i++)
@@ -373,19 +408,107 @@ public:
 
     inline void processOneTurn()
     {
-        DBG("[GameContext] Processing turn...");
+        DBG_INPUT("[GameContext] Processing turn...");
         if(_currentRound)
         {
-            DBG("[GameContext] Saving last turn to history");
+            DBG_INPUT("[GameContext] Saving last turn to history");
             _roundHistory.emplace_front(std::move(_currentRound));
         }
         _currentRound = std::unique_ptr<RoundState>(new RoundState(_myTeam));
         _currentRound->readFromInput();
     }
 
-    inline void takeAction()
+    inline void actionWait()
     {
         cout << "WAIT" << endl;
+    }
+
+    inline void move(const Position& pos)
+    {
+        cout << "MOVE " << pos.x << " " << pos.y << endl;
+    }
+
+    inline void attackUnit(const Unit& unit)
+    {
+        cout << "ATTACK " << unit.getUnitId() << endl;
+    }
+
+    inline void attackNearest(UnitType uType)
+    {
+        cout << "ATTACK_NEAREST " << unitTypeToString(uType) << endl;
+
+    }
+
+    inline void moveAttack(const Position& pos, const Unit& unit)
+    {
+        cout << "MOVE_ATTACK " << pos.x << " " << pos.y << " " << unit.getUnitId();
+    }
+
+    inline void takeAction()
+    {
+        unsigned numberOfHeroes=0;
+        if(_currentRound->roundType < 0)
+        {
+            cout << "HULK" << endl;
+        }
+        else
+        {
+            std::shared_ptr<Hero> ourHero;
+            std::shared_ptr<Unit> enemyTower;
+            int distanceToTower;
+            std::shared_ptr<Hero> enemyHero;
+            int distanceToHero;
+            if(_currentRound->ourTeam._heroes.size() > 0)
+            {
+                ourHero = _currentRound->ourTeam._heroes.back();
+            }
+            if(ourHero)
+            {
+                DBG_INFO("[Strategy] We have a hero!")
+
+                if(_currentRound->enemyTeam._towers.size() > 0)
+                {
+                    enemyTower = _currentRound->enemyTeam._towers.back();
+                    distanceToTower = ourHero->distanceTo(*enemyTower);
+                    DBG_INFO("Enemy has a tower! Distance to it " << distanceToTower);
+                }
+                if(_currentRound->enemyTeam._heroes.size() > 0)
+                {
+                    enemyHero = _currentRound->enemyTeam._heroes.back();
+                    distanceToHero = ourHero->distanceTo(*enemyHero);
+                    DBG_INFO("Enemy has a hero! Distance to it " << distanceToHero);
+                }
+
+                if(enemyHero)
+                {
+                    if(enemyHero->getAttackRange() > ourHero->getAttackRange()) // enemy outranges us
+                    {
+                        moveAttack(enemyHero->getPosition(), *enemyHero);
+                    }
+                    else if(enemyHero->getAttackRange() == ourHero->getAttackRange()) // same heroes
+                    {
+                        attackUnit(*enemyHero);
+                    }
+                    else // we outrange the enemy
+                    {
+                        attackUnit(*enemyHero);
+                    }
+                }
+                else if(enemyTower)
+                {
+                    moveAttack(enemyTower->getPosition(), *enemyTower);
+                }
+                else
+                {
+                    actionWait();
+                }
+            }
+            else
+            {
+                actionWait();
+            }
+
+        }
     }
 
 private:
